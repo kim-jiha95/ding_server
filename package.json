@@ -2,6 +2,9 @@
   "name": "ding-server",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
