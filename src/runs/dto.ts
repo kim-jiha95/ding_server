@@ -3,13 +3,27 @@ import { IsArray, IsDate, IsNumber, IsString, Min, ValidateNested } from 'class-
 
 function parseRouteTimestamp(value: unknown): Date {
   if (value instanceof Date) return value;
+
+  const parseNumericTimestamp = (numeric: number) => {
+    if (numeric > 10_000_000_000) {
+      return new Date(numeric);
+    }
+
+    // Swift Date JSON can arrive as seconds since Apple's 2001 reference date.
+    if (numeric > 0 && numeric < 978_307_200) {
+      return new Date(Date.UTC(2001, 0, 1, 0, 0, 0) + numeric * 1000);
+    }
+
+    return new Date(numeric * 1000);
+  };
+
   if (typeof value === 'number') {
-    return new Date(value > 10_000_000_000 ? value : value * 1000);
+    return parseNumericTimestamp(value);
   }
   if (typeof value === 'string') {
     const numeric = Number(value);
     if (!Number.isNaN(numeric) && value.trim() !== '') {
-      return new Date(numeric > 10_000_000_000 ? numeric : numeric * 1000);
+      return parseNumericTimestamp(numeric);
     }
     return new Date(value);
   }
