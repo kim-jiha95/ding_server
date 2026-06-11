@@ -1,0 +1,351 @@
+[
+  {
+    "id": "03e18bbe-83b2-44a0-b805-c914a7cdc962",
+    "email": "tester3@test.com",
+    "password": "tester1234",
+    "username": "dubu",
+    "hasCompletedOnboarding": true,
+    "preference": "Men",
+    "profile": {
+      "id": "3bc9850a-554f-4449-8bae-f4cf47152749",
+      "name": "dubu",
+      "level": 1,
+      "bio": "New to DING",
+      "totalDistance": 0,
+      "longestRun": 0,
+      "averagePace": "--'--/km",
+      "currentStreak": 0
+    },
+    "runs": [
+      {
+        "distanceKM": 0,
+        "calories": 0,
+        "id": "D36DFF43-8DCD-4CFD-A563-CE49900C0B02",
+        "duration": "00:47",
+        "averagePace": "--'--/km",
+        "dateLabel": "Today",
+        "splits": [],
+        "route": [
+          {
+            "latitude": 37.522394358560206,
+            "id": "78E58318-A130-4BC6-A19B-6EB765DDEC4C",
+            "longitude": 127.11561218335014
+          }
+        ]
+      }
+    ],
+    "dingSummary": {
+      "encounters": 4,
+      "sentCount": 0,
+      "matchCount": 1,
+      "topLocations": 2,
+      "received": [
+        {
+          "id": "da272421-770c-4098-b241-8ebabbe05e2e",
+          "runner": {
+            "id": "ab5776d0-ecb4-4d58-bb5c-a3b99a21b07f",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "candidates": [
+        {
+          "id": "5d74d2c9-4a86-4a54-86a3-85ab43d4641d",
+          "runner": {
+            "id": "ab5776d0-ecb4-4d58-bb5c-a3b99a21b07f",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "matches": [
+        {
+          "id": "6fa25cf2-df5c-4231-8dcb-d604aabec4e6",
+          "runner": {
+            "id": "ab5776d0-ecb4-4d58-bb5c-a3b99a21b07f",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "matchedAt": "Today · 10:25 PM",
+          "conversationUnlocked": true
+        }
+      ]
+    },
+    "threads": [
+      {
+        "id": "c467418a-d33c-479c-acc7-729bd7269cbb",
+        "participant": {
+          "id": "ab5776d0-ecb4-4d58-bb5c-a3b99a21b07f",
+          "displayName": "Runner #302",
+          "isOnline": true
+        },
+        "preview": "Hey! Great run today 👋",
+        "unreadCount": 1,
+        "messages": [
+          {
+            "id": "f73bfabc-c71d-498a-b5d7-8681012a44c4",
+            "senderID": "ab5776d0-ecb4-4d58-bb5c-a3b99a21b07f",
+            "body": "Hey! Great run today 👋",
+            "timestamp": "10:21 AM"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "86c254f3-61dd-4f3c-9fd5-5c2ba9bd98c2",
+    "email": "tester@test.com",
+    "password": "test1234",
+    "username": "tester",
+    "hasCompletedOnboarding": false,
+    "preference": "Women",
+    "profile": {
+      "id": "5b63f85f-1666-412f-8c5a-8698fec333ff",
+      "name": "tester",
+      "level": 1,
+      "bio": "New to DING",
+      "totalDistance": 0,
+      "longestRun": 0,
+      "averagePace": "--'--/km",
+      "currentStreak": 0
+    },
+    "runs": [],
+    "dingSummary": {
+      "encounters": 4,
+      "sentCount": 0,
+      "matchCount": 1,
+      "topLocations": 2,
+      "received": [
+        {
+          "id": "cc5222f0-caaa-4ebc-9642-31938be8002e",
+          "runner": {
+            "id": "9a716788-7750-46ca-bf80-c7c4e885cf56",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "candidates": [
+        {
+          "id": "e5833d15-3585-40ce-9482-248fe78f041b",
+          "runner": {
+            "id": "9a716788-7750-46ca-bf80-c7c4e885cf56",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "matches": [
+        {
+          "id": "a283378d-74b9-46e8-ab95-e0341e983fa8",
+          "runner": {
+            "id": "9a716788-7750-46ca-bf80-c7c4e885cf56",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "matchedAt": "Today · 10:25 PM",
+          "conversationUnlocked": true
+        }
+      ]
+    },
+    "threads": [
+      {
+        "id": "228dc8c6-a7f2-4684-a067-746274e5e731",
+        "participant": {
+          "id": "9a716788-7750-46ca-bf80-c7c4e885cf56",
+          "displayName": "Runner #302",
+          "isOnline": true
+        },
+        "preview": "Hey! Great run today 👋",
+        "unreadCount": 1,
+        "messages": [
+          {
+            "id": "08330bdd-f464-4477-82b5-cc77d0d96365",
+            "senderID": "9a716788-7750-46ca-bf80-c7c4e885cf56",
+            "body": "Hey! Great run today 👋",
+            "timestamp": "10:21 AM"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "b12ab983-36ad-4648-8eda-63620a719880",
+    "email": "alex@ding.run",
+    "password": "1234",
+    "username": "Alex Updated",
+    "hasCompletedOnboarding": true,
+    "preference": "Everyone",
+    "profile": {
+      "id": "ff3a88e9-c34f-441d-a5b4-2698725b9c5b",
+      "name": "Alex Updated",
+      "level": 12,
+      "bio": "Testing API",
+      "totalDistance": 515.2,
+      "longestRun": 21.1,
+      "averagePace": "5'24/km",
+      "currentStreak": 14
+    },
+    "runs": [
+      {
+        "id": "test-run-1",
+        "distanceKM": 3.2,
+        "duration": "18:30",
+        "averagePace": "5'47/km",
+        "calories": 210,
+        "dateLabel": "Today",
+        "route": [],
+        "splits": []
+      },
+      {
+        "id": "6f95800e-b01a-48c6-a1b7-72a5780cf3e4",
+        "distanceKM": 6.3,
+        "duration": "34:25",
+        "averagePace": "5'27/km",
+        "calories": 410,
+        "dateLabel": "Today",
+        "route": [],
+        "splits": []
+      },
+      {
+        "id": "99b77431-e1fd-4905-9afe-aa3abd49f36f",
+        "distanceKM": 5.8,
+        "duration": "30:48",
+        "averagePace": "5'21/km",
+        "calories": 392,
+        "dateLabel": "2 days ago",
+        "route": [],
+        "splits": []
+      },
+      {
+        "id": "e7449e16-2190-47a9-bac3-6fbad2686526",
+        "distanceKM": 10.2,
+        "duration": "55:10",
+        "averagePace": "5'24/km",
+        "calories": 672,
+        "dateLabel": "4 days ago",
+        "route": [],
+        "splits": []
+      }
+    ],
+    "dingSummary": {
+      "encounters": 4,
+      "sentCount": 0,
+      "matchCount": 1,
+      "topLocations": 2,
+      "received": [
+        {
+          "id": "10df5b73-5e1c-45f1-bd0e-317f2a1ad293",
+          "runner": {
+            "id": "26807c77-1892-4f90-aee9-6fd9f610a32c",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "candidates": [
+        {
+          "id": "a4d5fb76-88ca-4dac-b69f-e3defd10f8d8",
+          "runner": {
+            "id": "26807c77-1892-4f90-aee9-6fd9f610a32c",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "place": "Han River Park",
+          "averagePace": "5'12/km",
+          "encounterMinutes": 20,
+          "distanceApartKM": 0.6,
+          "likedYou": true,
+          "latitude": 37.5211,
+          "longitude": 126.9239
+        }
+      ],
+      "matches": [
+        {
+          "id": "5193a2ac-b07c-435e-a6ee-8e7950e63d5b",
+          "runner": {
+            "id": "26807c77-1892-4f90-aee9-6fd9f610a32c",
+            "displayName": "Runner #302",
+            "age": 29,
+            "badge": "10K Finisher",
+            "intro": "Sunset interval lover"
+          },
+          "matchedAt": "Today · 10:25 PM",
+          "conversationUnlocked": true
+        }
+      ]
+    },
+    "threads": [
+      {
+        "id": "99313aeb-32aa-42d5-a6b8-8bc58b98d033",
+        "participant": {
+          "id": "26807c77-1892-4f90-aee9-6fd9f610a32c",
+          "displayName": "Runner #302",
+          "isOnline": true
+        },
+        "preview": "updated preview",
+        "unreadCount": 1,
+        "messages": [
+          {
+            "id": "m1",
+            "senderID": "self",
+            "body": "hello",
+            "timestamp": "11:00 AM"
+          }
+        ]
+      }
+    ]
+  }
+]

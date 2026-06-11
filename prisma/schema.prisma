@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String        @id @default(cuid())
+  email                  String        @unique
+  passwordHash           String
+  username               String
+  hasCompletedOnboarding Boolean       @default(false)
+  preference             String        @default("Women")
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  profile                Profile?
+  runs                   Run[]
+  encounters             Encounter[]
+  matches                Match[]
+  threads                ChatThread[]
+  deviceTokens           DeviceToken[]
+
+  @@index([createdAt])
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  name          String
+  level         Int      @default(1)
+  bio           String
+  totalDistance Float    @default(0)
+  longestRun    Float    @default(0)
+  averagePace   String   @default("--'--/km")
+  currentStreak Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Run {
+  id          String          @id
+  userId      String
+  distanceKM  Float
+  duration    String
+  averagePace String
+  calories    Int
+  dateLabel   String
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routePoints RunRoutePoint[]
+  splits      RunSplit[]
+
+  @@index([userId, createdAt])
+}
+
+model RunRoutePoint {
+  id         String @id
+  runId      String
+  latitude   Float
+  longitude  Float
+  pointOrder Int
+  run        Run    @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, pointOrder])
+}
+
+model RunSplit {
+  id        String @id
+  runId     String
+  kilometer Int
+  splitTime String
+  paceText  String
+  run       Run    @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, kilometer])
+}
+
+model Encounter {
+  id                String   @id
+  userId            String
+  runnerId          String
+  runnerDisplayName String
+  age               Int
+  badge             String
+  intro             String
+  place             String
+  averagePace       String
+  encounterMinutes  Int
+  distanceApartKM   Float
+  likedYou          Boolean
+  latitude          Float
+  longitude         Float
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, runnerId])
+  @@index([userId, createdAt])
+}
+
+model Match {
+  id                   String   @id
+  userId               String
+  runnerId             String
+  runnerDisplayName    String
+  age                  Int
+  badge                String
+  intro                String
+  matchedAt            String
+  conversationUnlocked Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, runnerId])
+  @@index([userId, createdAt])
+}
+
+model ChatThread {
+  id                     String        @id
+  userId                 String
+  participantId          String
+  participantDisplayName String
+  participantOnline      Boolean       @default(false)
+  preview                String
+  unreadCount            Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages               ChatMessage[]
+
+  @@unique([userId, participantId])
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id        String     @id
+  threadId   String
+  senderID   String
+  body       String
+  timestamp  String
+  createdAt  DateTime   @default(now())
+  thread     ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}

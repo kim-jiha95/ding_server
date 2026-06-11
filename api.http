@@ -1,0 +1,41 @@
+### signup
+POST http://localhost:3000/auth/signup
+Content-Type: application/json
+
+{
+  "email": "sample@example.com",
+  "password": "1234",
+  "username": "sample"
+}
+
+### login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "sample@example.com",
+  "password": "1234"
+}
+
+### bootstrap
+GET http://localhost:3000/auth/bootstrap
+Authorization: Bearer {{token}}
+
+### update preference
+PATCH http://localhost:3000/auth/preference
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "preference": "Everyone"
+}
+
+### device token
+POST http://localhost:3000/profile/me/device-tokens
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "token": "device-token-sample",
+  "platform": "ios"
+}
