@@ -13,6 +13,7 @@
     "test": "jest",
     "push:webhook:mock": "node scripts/mock-push-webhook.js",
     "redis:memory": "node scripts/start-redis-memory.js",
+    "reset:social": "node scripts/reset-social-data.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy"

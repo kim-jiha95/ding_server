@@ -26,8 +26,8 @@ export class EncounterWorkerService implements OnModuleInit, OnModuleDestroy {
       ENCOUNTER_QUEUE,
       async (job: Job<{ userId: string; run: RunRecord }>) => {
         if (job.name !== ENCOUNTER_GENERATE_JOB) return;
-        await this.encounterGenerationService.generateForRun(job.data.userId, job.data.run);
-        await this.cacheService.del(this.dingSummaryKey(job.data.userId));
+        const affectedUserIds = await this.encounterGenerationService.generateForRun(job.data.userId, job.data.run);
+        await Promise.all(Array.from(new Set(affectedUserIds)).map((userId) => this.cacheService.del(this.dingSummaryKey(userId))));
       },
       { connection: { url: redisUrl } as never },
     );

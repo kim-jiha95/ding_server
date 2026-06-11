@@ -57,14 +57,16 @@ model Run {
 }
 
 model RunRoutePoint {
-  id         String @id
+  id         String   @id
   runId      String
   latitude   Float
   longitude  Float
+  timestamp  DateTime
   pointOrder Int
-  run        Run    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run        Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
 
   @@index([runId, pointOrder])
+  @@index([runId, timestamp])
 }
 
 model RunSplit {

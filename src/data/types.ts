@@ -52,6 +52,7 @@ export interface RunRoutePoint {
   id: string;
   latitude: number;
   longitude: number;
+  timestamp: Date;
 }
 
 export interface LiveRunSplit {

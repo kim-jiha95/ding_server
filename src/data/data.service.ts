@@ -21,13 +21,6 @@ import {
 
 const id = () => randomUUID();
 
-const runnerPool: RunnerProfile[] = [
-  { id: id(), displayName: 'Runner #302', age: 29, badge: '10K Finisher', intro: 'Sunset interval lover' },
-  { id: id(), displayName: 'Runner #511', age: 31, badge: 'Tempo Specialist', intro: 'Always at Central Park' },
-  { id: id(), displayName: 'Runner #920', age: 26, badge: 'Sub-20 5K', intro: 'Fast but friendly' },
-  { id: id(), displayName: 'Runner #108', age: 28, badge: 'Beginner Streak 22', intro: 'Training for first 10K' },
-];
-
 @Injectable()
 export class DataService implements OnModuleInit {
   constructor(
@@ -56,7 +49,6 @@ export class DataService implements OnModuleInit {
       { id: id(), distanceKM: 10.2, duration: '55:10', averagePace: "5'24/km", calories: 672, dateLabel: '4 days ago', route: [], splits: [] },
     ];
     await this.createUser(seeded);
-    await this.seedSocial(seeded.id);
     for (const run of seeded.runs) {
       await this.persistRun(seeded.id, run);
     }
@@ -67,7 +59,6 @@ export class DataService implements OnModuleInit {
     if (existing) throw new Error('EMAIL_EXISTS');
     const user = await this.buildUser(email, password, username);
     await this.createUser(user);
-    await this.seedSocial(user.id);
     return this.toSession(user);
   }
 
@@ -541,56 +532,6 @@ export class DataService implements OnModuleInit {
     });
   }
 
-  private async seedSocial(userId: string) {
-    const encounter = this.makeEncounter(runnerPool[0], true, 37.5211, 126.9239, 'Han River Park', "5'12/km", 20, 0.6);
-    await this.prisma.encounter.upsert({
-      where: { userId_runnerId: { userId, runnerId: encounter.runner.id } },
-      update: {
-        place: encounter.place,
-        averagePace: encounter.averagePace,
-        encounterMinutes: encounter.encounterMinutes,
-        distanceApartKM: encounter.distanceApartKM,
-        likedYou: encounter.likedYou,
-        latitude: encounter.latitude,
-        longitude: encounter.longitude,
-      },
-      create: {
-        id: encounter.id,
-        userId,
-        runnerId: encounter.runner.id,
-        runnerDisplayName: encounter.runner.displayName,
-        age: encounter.runner.age,
-        badge: encounter.runner.badge,
-        intro: encounter.runner.intro,
-        place: encounter.place,
-        averagePace: encounter.averagePace,
-        encounterMinutes: encounter.encounterMinutes,
-        distanceApartKM: encounter.distanceApartKM,
-        likedYou: encounter.likedYou,
-        latitude: encounter.latitude,
-        longitude: encounter.longitude,
-      },
-    });
-
-    await this.prisma.match.upsert({
-      where: { userId_runnerId: { userId, runnerId: encounter.runner.id } },
-      update: { matchedAt: 'Today · 10:25 PM', conversationUnlocked: true },
-      create: {
-        id: encounter.id,
-        userId,
-        runnerId: encounter.runner.id,
-        runnerDisplayName: encounter.runner.displayName,
-        age: encounter.runner.age,
-        badge: encounter.runner.badge,
-        intro: encounter.runner.intro,
-        matchedAt: 'Today · 10:25 PM',
-        conversationUnlocked: true,
-      },
-    });
-
-    await this.ensureThreadForMatch(userId, encounter.runner.id, encounter.runner.displayName);
-  }
-
   private async ensureThreadForMatch(userId: string, participantId: string, participantDisplayName: string) {
     const existing = await this.prisma.chatThread.findUnique({
       where: { userId_participantId: { userId, participantId } },
@@ -614,8 +555,8 @@ export class DataService implements OnModuleInit {
   }
 
   private async generateEncounters(userId: string, run: RunRecord) {
-    await this.encounterGenerationService.generateForRun(userId, run);
-    await this.invalidateDingCaches(userId);
+    const affectedUserIds = await this.encounterGenerationService.generateForRun(userId, run);
+    await Promise.all(Array.from(new Set(affectedUserIds)).map((id) => this.invalidateDingCaches(id)));
   }
 
   private async persistRun(userId: string, run: RunRecord) {
@@ -629,7 +570,7 @@ export class DataService implements OnModuleInit {
         dateLabel: run.dateLabel,
         routePoints: {
           deleteMany: {},
-          create: run.route.map((point, index) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude, pointOrder: index })),
+          create: run.route.map((point, index) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude, timestamp: point.timestamp, pointOrder: index })),
         },
         splits: {
           deleteMany: {},
@@ -644,7 +585,7 @@ export class DataService implements OnModuleInit {
         averagePace: run.averagePace,
         calories: run.calories,
         dateLabel: run.dateLabel,
-        routePoints: { create: run.route.map((point, index) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude, pointOrder: index })) },
+        routePoints: { create: run.route.map((point, index) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude, timestamp: point.timestamp, pointOrder: index })) },
         splits: { create: run.splits.map((split) => ({ id: split.id, kilometer: split.kilometer, splitTime: split.splitTime, paceText: split.paceText })) },
       },
     });
@@ -662,19 +603,6 @@ export class DataService implements OnModuleInit {
     };
   }
 
-  private makeEncounter(
-    runner: RunnerProfile,
-    likedYou: boolean,
-    latitude: number,
-    longitude: number,
-    place: string,
-    averagePace: string,
-    encounterMinutes: number,
-    distanceApartKM: number,
-  ): Encounter {
-    return { id: id(), runner, place, averagePace, encounterMinutes, distanceApartKM, likedYou, latitude, longitude };
-  }
-
   private mapRun(run: {
     id: string;
     distanceKM: number;
@@ -682,7 +610,7 @@ export class DataService implements OnModuleInit {
     averagePace: string;
     calories: number;
     dateLabel: string;
-    routePoints: Array<{ id: string; latitude: number; longitude: number }>;
+    routePoints: Array<{ id: string; latitude: number; longitude: number; timestamp: Date }>;
     splits: Array<{ id: string; kilometer: number; splitTime: string; paceText: string }>;
   }): RunRecord {
     return {
@@ -692,7 +620,7 @@ export class DataService implements OnModuleInit {
       averagePace: run.averagePace,
       calories: run.calories,
       dateLabel: run.dateLabel,
-      route: run.routePoints.map((point) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude })),
+      route: run.routePoints.map((point) => ({ id: point.id, latitude: point.latitude, longitude: point.longitude, timestamp: point.timestamp })),
       splits: run.splits.map((split) => ({ id: split.id, kilometer: split.kilometer, splitTime: split.splitTime, paceText: split.paceText })),
     };
   }
