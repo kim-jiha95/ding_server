@@ -20,6 +20,6 @@ export class ProfileController {
 
   @Post('me/device-tokens')
   registerDeviceToken(@Req() req: { userId: string }, @Body() dto: RegisterDeviceTokenDto) {
-    return this.dataService.registerDeviceToken(req.userId, dto.token, dto.platform);
+    return this.dataService.registerDeviceToken(req.userId, dto.token, dto.platform, dto.environment ?? 'sandbox');
   }
 }

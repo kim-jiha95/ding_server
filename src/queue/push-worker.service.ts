@@ -29,7 +29,7 @@ export class PushWorkerService implements OnModuleInit, OnModuleDestroy {
 
         const tokens = await this.prisma.deviceToken.findMany({
           where: { userId: job.data.userId, isActive: true },
-          select: { token: true, platform: true },
+          select: { token: true, platform: true, environment: true },
         });
 
         if (!tokens.length) {

@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsNotEmpty()
@@ -14,4 +14,8 @@ export class RegisterDeviceTokenDto {
 
   @IsIn(['ios', 'android', 'web'])
   platform!: 'ios' | 'android' | 'web';
+
+  @IsOptional()
+  @IsIn(['sandbox', 'production'])
+  environment?: 'sandbox' | 'production';
 }

@@ -129,7 +129,7 @@ export class DataService implements OnModuleInit {
         currentStreak: user.profile.currentStreak,
       },
       runs: user.runs.map((run) => this.mapRun(run)),
-      dingSummary: this.buildDingSummary(encounters, matches),
+      dingSummary: this.buildDingSummary(encounters, matches, 0),
       threads: user.threads.map((thread) => this.mapThread(thread)),
     };
   }
@@ -152,13 +152,13 @@ export class DataService implements OnModuleInit {
     return { ...user.profile, name, bio };
   }
 
-  async registerDeviceToken(userId: string, token: string, platform: 'ios' | 'android' | 'web') {
+  async registerDeviceToken(userId: string, token: string, platform: 'ios' | 'android' | 'web', environment: 'sandbox' | 'production') {
     await this.prisma.deviceToken.upsert({
       where: { token },
-      update: { userId, platform, isActive: true },
-      create: { userId, token, platform, isActive: true },
+      update: { userId, platform, environment, isActive: true },
+      create: { userId, token, platform, environment, isActive: true },
     });
-    return { ok: true, token, platform };
+    return { ok: true, token, platform, environment };
   }
 
   async dashboard(userId: string): Promise<{ weeklyDistance: number; monthlyDistance: number; recentRuns: RunRecord[] }> {
@@ -246,9 +246,10 @@ export class DataService implements OnModuleInit {
     const cached = await this.cacheService.get<DingSummary>(key);
     if (cached) return cached;
 
-    const [encountersRaw, matchesRaw] = await Promise.all([
+    const [encountersRaw, matchesRaw, sentCount] = await Promise.all([
       this.prisma.encounter.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
       this.prisma.match.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.dingRequest.count({ where: { fromUserId: userId } }),
     ]);
     const encounters = encountersRaw.map<Encounter>((item) => ({
       id: item.id,
@@ -267,7 +268,7 @@ export class DataService implements OnModuleInit {
       matchedAt: item.matchedAt,
       conversationUnlocked: item.conversationUnlocked,
     }));
-    const result = this.buildDingSummary(encounters, matches);
+    const result = this.buildDingSummary(encounters, matches, sentCount);
     await this.cacheService.set(key, result, 20);
     return result;
   }
@@ -275,49 +276,57 @@ export class DataService implements OnModuleInit {
   async sendDing(userId: string, encounterIDs: string[]): Promise<MatchResult | null> {
     if (!encounterIDs.length) return null;
 
-    const encounter = await this.prisma.encounter.findFirst({
-      where: { userId, id: { in: encounterIDs }, likedYou: true },
+    const encounters = await this.prisma.encounter.findMany({
+      where: { userId, id: { in: encounterIDs } },
+      orderBy: { createdAt: 'desc' },
     });
-    if (!encounter) return null;
+    if (!encounters.length) return null;
 
-    await this.prisma.match.upsert({
-      where: { userId_runnerId: { userId, runnerId: encounter.runnerId } },
-      update: { matchedAt: 'Today · 10:25 PM', conversationUnlocked: true },
-      create: {
-        id: encounter.id,
-        userId,
-        runnerId: encounter.runnerId,
-        runnerDisplayName: encounter.runnerDisplayName,
-        age: encounter.age,
-        badge: encounter.badge,
-        intro: encounter.intro,
-        matchedAt: 'Today · 10:25 PM',
-        conversationUnlocked: true,
-      },
-    });
+    let matched: MatchResult | null = null;
 
-    await this.ensureThreadForMatch(userId, encounter.runnerId, encounter.runnerDisplayName);
-    await this.invalidateDingCaches(userId);
-    await this.invalidateChatCaches(userId);
-    await this.notificationQueueService.enqueuePush({
-      userId,
-      title: 'It\'s a match!',
-      body: `${encounter.runnerDisplayName} accepted your DING.`,
-      data: { type: 'match', runnerId: encounter.runnerId },
-    });
+    for (const encounter of encounters) {
+      const existingRequest = await this.prisma.dingRequest.findUnique({
+        where: { fromUserId_toUserId: { fromUserId: userId, toUserId: encounter.runnerId } },
+      });
+      if (!existingRequest) {
+        await this.prisma.dingRequest.create({
+          data: {
+            encounterId: encounter.id,
+            fromUserId: userId,
+            toUserId: encounter.runnerId,
+            status: 'pending',
+          },
+        });
+      }
 
-    return {
-      id: encounter.id,
-      runner: {
-        id: encounter.runnerId,
-        displayName: encounter.runnerDisplayName,
-        age: encounter.age,
-        badge: encounter.badge,
-        intro: encounter.intro,
-      },
-      matchedAt: 'Today · 10:25 PM',
-      conversationUnlocked: true,
-    };
+      await this.prisma.encounter.updateMany({
+        where: { userId: encounter.runnerId, runnerId: userId },
+        data: { likedYou: true },
+      });
+
+      const reciprocal = await this.prisma.dingRequest.findUnique({
+        where: { fromUserId_toUserId: { fromUserId: encounter.runnerId, toUserId: userId } },
+      });
+
+      if (reciprocal) {
+        matched = await this.createMatchPair(userId, encounter);
+      } else {
+        await this.notificationQueueService.enqueuePush({
+          userId: encounter.runnerId,
+          title: '새 DING 도착',
+          body: '함께 달린 러너가 회원님에게 호감을 보냈어요.',
+          data: { type: 'ding_received', runnerId: userId, encounterId: encounter.id },
+        });
+      }
+    }
+
+    const relatedUserIDs = Array.from(new Set(encounters.flatMap((encounter) => [userId, encounter.runnerId])));
+    await Promise.all(relatedUserIDs.map((id) => this.invalidateDingCaches(id)));
+    if (matched) {
+      await this.invalidateChatCaches(userId);
+    }
+
+    return matched;
   }
 
   async threads(userId: string) {
@@ -591,10 +600,98 @@ export class DataService implements OnModuleInit {
     });
   }
 
-  private buildDingSummary(encounters: Encounter[], matches: MatchResult[]): DingSummary {
+  private async createMatchPair(userId: string, encounter: {
+    id: string;
+    runnerId: string;
+    runnerDisplayName: string;
+    age: number;
+    badge: string;
+    intro: string;
+  }): Promise<MatchResult> {
+    const matchedAt = new Date().toISOString();
+
+    await this.prisma.dingRequest.updateMany({
+      where: {
+        OR: [
+          { fromUserId: userId, toUserId: encounter.runnerId },
+          { fromUserId: encounter.runnerId, toUserId: userId },
+        ],
+      },
+      data: { status: 'matched' },
+    });
+
+    await this.prisma.match.upsert({
+      where: { userId_runnerId: { userId, runnerId: encounter.runnerId } },
+      update: { matchedAt, conversationUnlocked: true },
+      create: {
+        id: encounter.id,
+        userId,
+        runnerId: encounter.runnerId,
+        runnerDisplayName: encounter.runnerDisplayName,
+        age: encounter.age,
+        badge: encounter.badge,
+        intro: encounter.intro,
+        matchedAt,
+        conversationUnlocked: true,
+      },
+    });
+
+    const currentUser = await this.findByUserId(userId);
+
+    await this.prisma.match.upsert({
+      where: { userId_runnerId: { userId: encounter.runnerId, runnerId: userId } },
+      update: { matchedAt, conversationUnlocked: true },
+      create: {
+        id: id(),
+        userId: encounter.runnerId,
+        runnerId: userId,
+        runnerDisplayName: currentUser.username,
+        age: 0,
+        badge: '',
+        intro: currentUser.profile.bio,
+        matchedAt,
+        conversationUnlocked: true,
+      },
+    });
+
+    await this.ensureThreadForMatch(userId, encounter.runnerId, encounter.runnerDisplayName);
+    await this.ensureThreadForMatch(encounter.runnerId, userId, currentUser.username);
+    await this.invalidateChatCaches(userId);
+    await this.invalidateChatCaches(encounter.runnerId);
+
+    await Promise.all([
+      this.notificationQueueService.enqueuePush({
+        userId,
+        title: '매칭 성사!',
+        body: `${encounter.runnerDisplayName}님과 서로 DING을 보냈어요.`,
+        data: { type: 'match_success', runnerId: encounter.runnerId },
+      }),
+      this.notificationQueueService.enqueuePush({
+        userId: encounter.runnerId,
+        title: '매칭 성사!',
+        body: `${currentUser.username}님과 서로 DING을 보냈어요.`,
+        data: { type: 'match_success', runnerId: userId },
+      }),
+    ]);
+
+    return {
+      id: encounter.id,
+      runner: {
+        id: encounter.runnerId,
+        displayName: encounter.runnerDisplayName,
+        age: encounter.age,
+        badge: encounter.badge,
+        intro: encounter.intro,
+      },
+      matchedAt,
+      conversationUnlocked: true,
+    };
+  }
+
+  private buildDingSummary(encounters: Encounter[], matches: MatchResult[], sentCount: number): DingSummary {
     return {
       encounters: encounters.length,
-      sentCount: matches.length,
+      sentCount,
       matchCount: matches.length,
       topLocations: new Set(encounters.map((item) => item.place)).size,
       received: encounters.filter((item) => item.likedYou),

@@ -81,6 +81,13 @@ export class EncounterGenerationService {
   }
 
   private async upsertEncounter(userId: string, runnerId: string, encounter: Encounter) {
+    const likedYou = Boolean(
+      await this.prisma.dingRequest.findFirst({
+        where: { fromUserId: runnerId, toUserId: userId },
+        select: { id: true },
+      }),
+    );
+
     await this.prisma.encounter.upsert({
       where: { userId_runnerId: { userId, runnerId } },
       update: {
@@ -92,7 +99,7 @@ export class EncounterGenerationService {
         averagePace: encounter.averagePace,
         encounterMinutes: encounter.encounterMinutes,
         distanceApartKM: encounter.distanceApartKM,
-        likedYou: encounter.likedYou,
+        likedYou,
         latitude: encounter.latitude,
         longitude: encounter.longitude,
       },
@@ -108,7 +115,7 @@ export class EncounterGenerationService {
         averagePace: encounter.averagePace,
         encounterMinutes: encounter.encounterMinutes,
         distanceApartKM: encounter.distanceApartKM,
-        likedYou: encounter.likedYou,
+        likedYou,
         latitude: encounter.latitude,
         longitude: encounter.longitude,
       },
