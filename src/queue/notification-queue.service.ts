@@ -39,13 +39,19 @@ export class NotificationQueueService implements OnModuleDestroy {
       return { queued: false, mode: 'no-device-tokens', ...payload };
     }
 
-    const result = await this.pushGatewayService.sendMany(tokens, {
-      title: payload.title,
-      body: payload.body,
-      data: payload.data,
-    });
-    this.logger.log(`push dispatched inline userId=${payload.userId} count=${tokens.length} mode=${result.mode}`);
-    return { queued: false, mode: `inline-${result.mode}`, ...payload };
+    try {
+      const result = await this.pushGatewayService.sendMany(tokens, {
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+      });
+      this.logger.log(`push dispatched inline userId=${payload.userId} count=${tokens.length} mode=${result.mode}`);
+      return { queued: false, mode: `inline-${result.mode}`, ...payload };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`push dispatch failed userId=${payload.userId} reason=${message}`);
+      return { queued: false, mode: 'inline-failed', ...payload };
+    }
   }
 
   async onModuleDestroy() {
