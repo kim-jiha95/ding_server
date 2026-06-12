@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createSign } from 'crypto';
+import { connect } from 'http2';
 import { App, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
@@ -66,34 +67,74 @@ export class PushGatewayService {
 
     for (const item of iosTokens) {
       const host = item.environment === 'production' ? 'https://api.push.apple.com' : 'https://api.sandbox.push.apple.com';
-      const response = await fetch(`${host}/3/device/${item.token}`, {
-        method: 'POST',
-        headers: {
-          authorization: `bearer ${jwt}`,
-          'apns-topic': bundleId,
-          'apns-push-type': 'alert',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      try {
+        const response = await this.sendApnsRequest(host, item.token, jwt, bundleId, payload);
+        if (response.status >= 200 && response.status < 300) {
+          count += 1;
+          continue;
+        }
+
+        this.logger.warn(`apns send failed status=${response.status} token=${item.token.slice(0, 12)}... body=${response.body}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`apns transport failed host=${host} token=${item.token.slice(0, 12)}... reason=${message}`);
+      }
+    }
+
+    this.logger.log(`push sent via apns success=${count} total=${iosTokens.length}`);
+    return { mode: 'apns', count, failureCount: iosTokens.length - count };
+  }
+
+  private async sendApnsRequest(
+    host: string,
+    token: string,
+    jwt: string,
+    bundleId: string,
+    payload: { title: string; body: string; data?: Record<string, string> },
+  ): Promise<{ status: number; body: string }> {
+    const client = connect(host);
+
+    return await new Promise((resolve, reject) => {
+      client.on('error', reject);
+
+      const request = client.request({
+        ':method': 'POST',
+        ':path': `/3/device/${token}`,
+        authorization: `bearer ${jwt}`,
+        'apns-topic': bundleId,
+        'apns-push-type': 'alert',
+        'content-type': 'application/json',
+      });
+
+      let status = 0;
+      let body = '';
+
+      request.on('response', (headers) => {
+        status = Number(headers[':status'] ?? 0);
+      });
+      request.setEncoding('utf8');
+      request.on('data', (chunk) => {
+        body += chunk;
+      });
+      request.on('end', () => {
+        client.close();
+        resolve({ status, body });
+      });
+      request.on('error', (error) => {
+        client.close();
+        reject(error);
+      });
+
+      request.end(
+        JSON.stringify({
           aps: {
             alert: { title: payload.title, body: payload.body },
             sound: 'default',
           },
           ...(payload.data ?? {}),
         }),
-      });
-
-      if (response.ok) {
-        count += 1;
-        continue;
-      }
-
-      const errorText = await response.text();
-      this.logger.warn(`apns send failed status=${response.status} token=${item.token.slice(0, 12)}... body=${errorText}`);
-    }
-
-    this.logger.log(`push sent via apns success=${count} total=${iosTokens.length}`);
-    return { mode: 'apns', count, failureCount: iosTokens.length - count };
+      );
+    });
   }
 
   private createApnsJwt(teamId: string, keyId: string, privateKey: string) {
