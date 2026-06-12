@@ -1,6 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
+import { PrismaService } from '../prisma/prisma.service';
 import { PUSH_QUEUE, PUSH_SEND_JOB } from './queue.constants';
+import { PushGatewayService } from './push-gateway.service';
 
 export interface PushNotificationPayload {
   userId: string;
@@ -14,7 +16,10 @@ export class NotificationQueueService implements OnModuleDestroy {
   private readonly logger = new Logger(NotificationQueueService.name);
   private readonly queue?: Queue;
 
-  constructor() {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pushGatewayService: PushGatewayService,
+  ) {
     const redisUrl = process.env.REDIS_URL;
     if (!redisUrl) return;
     this.queue = new Queue(PUSH_QUEUE, {
@@ -24,17 +29,23 @@ export class NotificationQueueService implements OnModuleDestroy {
   }
 
   async enqueuePush(payload: PushNotificationPayload) {
-    if (!this.queue) {
-      this.logger.log(`push queue unavailable, inline fallback userId=${payload.userId} title=${payload.title}`);
-      return { queued: false, mode: 'inline-fallback', ...payload };
+    const tokens = await this.prisma.deviceToken.findMany({
+      where: { userId: payload.userId, isActive: true },
+      select: { token: true, platform: true, environment: true },
+    });
+
+    if (!tokens.length) {
+      this.logger.log(`no active device tokens userId=${payload.userId}`);
+      return { queued: false, mode: 'no-device-tokens', ...payload };
     }
 
-    const job = await this.queue.add(PUSH_SEND_JOB, payload, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 3000 },
+    const result = await this.pushGatewayService.sendMany(tokens, {
+      title: payload.title,
+      body: payload.body,
+      data: payload.data,
     });
-    this.logger.log(`push job queued id=${job.id} userId=${payload.userId}`);
-    return { queued: true, mode: 'bullmq', jobId: job.id, ...payload };
+    this.logger.log(`push dispatched inline userId=${payload.userId} count=${tokens.length} mode=${result.mode}`);
+    return { queued: false, mode: `inline-${result.mode}`, ...payload };
   }
 
   async onModuleDestroy() {
