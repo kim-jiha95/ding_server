@@ -9,6 +9,7 @@ const MAX_TIME_GAP_SECONDS = 300;
 const RECENT_RUN_WINDOW_HOURS = 24;
 const MIN_MATCHED_POINTS = 1;
 const STRONG_MATCH_POINTS = 3;
+const MAX_FALLBACK_DISTANCE_METERS = 1_000;
 
 @Injectable()
 export class EncounterGenerationService {
@@ -64,7 +65,7 @@ export class EncounterGenerationService {
       const otherEnd = this.routeEnd(otherRoute);
       if (!this.timeWindowsOverlap(runStart, runEnd, otherStart, otherEnd, MAX_TIME_GAP_SECONDS)) continue;
 
-      const overlap = this.findEncounter(run.route, otherRoute);
+      const overlap = this.findEncounter(run.route, otherRoute) ?? this.findLooseEncounter(run.route, otherRoute);
       if (!overlap) continue;
 
       const otherRunner = this.toRunnerProfile(otherRun.user);
@@ -188,6 +189,30 @@ export class EncounterGenerationService {
       center: {
         latitude: center.latitude / sorted.length,
         longitude: center.longitude / sorted.length,
+      },
+    };
+  }
+
+  private findLooseEncounter(routeA: RunRoutePoint[], routeB: RunRoutePoint[]): EncounterOverlap | null {
+    let closest: { a: RunRoutePoint; b: RunRoutePoint; distanceMeters: number } | null = null;
+
+    for (const pointA of routeA) {
+      for (const pointB of routeB) {
+        const distanceMeters = this.distanceMeters(pointA.latitude, pointA.longitude, pointB.latitude, pointB.longitude);
+        if (!closest || distanceMeters < closest.distanceMeters) {
+          closest = { a: pointA, b: pointB, distanceMeters };
+        }
+      }
+    }
+
+    if (!closest || closest.distanceMeters > MAX_FALLBACK_DISTANCE_METERS) return null;
+
+    return {
+      encounterMinutes: 0,
+      minDistanceMeters: closest.distanceMeters,
+      center: {
+        latitude: (closest.a.latitude + closest.b.latitude) / 2,
+        longitude: (closest.a.longitude + closest.b.longitude) / 2,
       },
     };
   }
