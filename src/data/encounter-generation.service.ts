@@ -9,7 +9,8 @@ const MAX_TIME_GAP_SECONDS = 300;
 const RECENT_RUN_WINDOW_HOURS = 24;
 const MIN_MATCHED_POINTS = 1;
 const STRONG_MATCH_POINTS = 3;
-const MAX_FALLBACK_DISTANCE_METERS = 1_000;
+const MAX_INSTANT_CROSS_DISTANCE_METERS = 35;
+const MAX_INSTANT_CROSS_TIME_GAP_SECONDS = 15;
 
 @Injectable()
 export class EncounterGenerationService {
@@ -63,9 +64,14 @@ export class EncounterGenerationService {
 
       const otherStart = this.routeStart(otherRoute);
       const otherEnd = this.routeEnd(otherRoute);
-      if (!this.timeWindowsOverlap(runStart, runEnd, otherStart, otherEnd, MAX_TIME_GAP_SECONDS)) continue;
+      const strictWindowOverlaps = this.timeWindowsOverlap(runStart, runEnd, otherStart, otherEnd, MAX_TIME_GAP_SECONDS);
 
-      const overlap = this.findEncounter(run.route, otherRoute) ?? this.findLooseEncounter(run.route, otherRoute);
+      let overlap: EncounterOverlap | null = null;
+      if (strictWindowOverlaps) {
+        overlap = this.findEncounter(run.route, otherRoute) ?? this.findInstantCrossEncounter(run.route, otherRoute);
+      } else {
+        overlap = this.findInstantCrossEncounter(run.route, otherRoute);
+      }
       if (!overlap) continue;
 
       const otherRunner = this.toRunnerProfile(otherRun.user);
@@ -193,19 +199,24 @@ export class EncounterGenerationService {
     };
   }
 
-  private findLooseEncounter(routeA: RunRoutePoint[], routeB: RunRoutePoint[]): EncounterOverlap | null {
+  private findInstantCrossEncounter(routeA: RunRoutePoint[], routeB: RunRoutePoint[]): EncounterOverlap | null {
     let closest: { a: RunRoutePoint; b: RunRoutePoint; distanceMeters: number } | null = null;
 
     for (const pointA of routeA) {
       for (const pointB of routeB) {
+        const timeGapSeconds = Math.abs(pointA.timestamp.getTime() - pointB.timestamp.getTime()) / 1000;
+        if (timeGapSeconds > MAX_INSTANT_CROSS_TIME_GAP_SECONDS) continue;
+
         const distanceMeters = this.distanceMeters(pointA.latitude, pointA.longitude, pointB.latitude, pointB.longitude);
+        if (distanceMeters > MAX_INSTANT_CROSS_DISTANCE_METERS) continue;
+
         if (!closest || distanceMeters < closest.distanceMeters) {
           closest = { a: pointA, b: pointB, distanceMeters };
         }
       }
     }
 
-    if (!closest || closest.distanceMeters > MAX_FALLBACK_DISTANCE_METERS) return null;
+    if (!closest) return null;
 
     return {
       encounterMinutes: 0,
