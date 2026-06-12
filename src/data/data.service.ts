@@ -233,11 +233,7 @@ export class DataService implements OnModuleInit {
 
     await this.invalidateRunCaches(userId);
 
-    if (process.env.REDIS_URL) {
-      await this.encounterQueueService.enqueueGenerateEncounters(userId, run);
-    } else {
-      await this.generateEncounters(userId, run);
-    }
+    await this.generateEncounters(userId, run);
     return run;
   }
 
