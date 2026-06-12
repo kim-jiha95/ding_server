@@ -50,7 +50,7 @@ export class PushGatewayService {
     const keyId = process.env.APNS_KEY_ID;
     const teamId = process.env.APNS_TEAM_ID;
     const bundleId = process.env.APNS_BUNDLE_ID;
-    const privateKey = process.env.APNS_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const privateKey = this.normalizePrivateKey(process.env.APNS_PRIVATE_KEY);
 
     if (!keyId || !teamId || !bundleId || !privateKey) {
       return undefined;
@@ -117,7 +117,7 @@ export class PushGatewayService {
 
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const privateKey = this.normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
     if (!projectId || !clientEmail || !privateKey) {
       return undefined;
@@ -127,5 +127,21 @@ export class PushGatewayService {
       credential: cert({ projectId, clientEmail, privateKey }),
     });
     return this.firebaseApp;
+  }
+
+  private normalizePrivateKey(value?: string) {
+    if (!value) return undefined;
+
+    let normalized = value.trim();
+
+    if ((normalized.startsWith('"') && normalized.endsWith('"')) || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+      normalized = normalized.slice(1, -1);
+    }
+
+    normalized = normalized.replace(/\\n/g, '\n');
+    normalized = normalized.replace('BEGIN PRIVATEKEY', 'BEGIN PRIVATE KEY');
+    normalized = normalized.replace('END PRIVATEKEY', 'END PRIVATE KEY');
+
+    return normalized;
   }
 }
